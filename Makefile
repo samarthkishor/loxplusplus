@@ -14,7 +14,7 @@ COMPILE_FLAGS = -std=c++2a -Wall -Wextra -g
 # Additional release-specific flags
 RCOMPILE_FLAGS = -D NDEBUG
 # Additional debug-specific flags
-DCOMPILE_FLAGS = -D DEBUG
+DCOMPILE_FLAGS = -D DEBUG -O1 -fno-omit-frame-pointer -fsanitize=address
 # Add additional include paths
 INCLUDES = -I $(SRC_PATH)
 # General linker settings
