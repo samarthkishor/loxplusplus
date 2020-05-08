@@ -2,8 +2,9 @@
 #define __CHUNK_H_
 
 #include <stdint.h>
-#include <vector>
+
 #include <map>
+#include <vector>
 
 #include "value.h"
 
@@ -26,4 +27,4 @@ struct Chunk {
 void writeChunk(Chunk* chunk, uint8_t byte, int line);
 int addConstant(Chunk* chunk, Value value);
 
-#endif // __CHUNK_H_
+#endif  // __CHUNK_H_

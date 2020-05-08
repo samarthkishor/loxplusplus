@@ -7,16 +7,12 @@
 
 struct VM {
     Chunk* chunk;
-    uint8_t* ip; // instruction pointer
+    uint8_t* ip;  // instruction pointer
     std::stack<Value> stack;
 };
 
-enum class InterpretResult {
-    OK,
-    COMPILE_ERROR,
-    RUNTIME_ERROR
-};
+enum class InterpretResult { OK, COMPILE_ERROR, RUNTIME_ERROR };
 
 InterpretResult interpret(Chunk* chunk);
 
-#endif // __VM_H_
+#endif  // __VM_H_

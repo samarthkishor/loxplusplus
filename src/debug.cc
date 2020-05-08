@@ -1,7 +1,9 @@
+#include "debug.h"
+
 #include <stdio.h>
+
 #include <iostream>
 
-#include "debug.h"
 #include "value.h"
 
 static int simpleInstruction(const std::string& name, int offset) {
@@ -55,4 +57,3 @@ void disassembleChunk(Chunk* chunk, const std::string& name) {
         offset = disassembleInstruction(chunk, offset);
     }
 }
-

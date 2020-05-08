@@ -1,8 +1,8 @@
 #ifndef __UTIL_H_
 #define __UTIL_H_
 
-#include<stack>
-#include<vector>
+#include <stack>
+#include <vector>
 
 /**
  * Copies the contents of stack a into stack b
@@ -36,4 +36,4 @@ void reverseStack(std::stack<T>& a, std::stack<T>& b) {
     }
 }
 
-#endif // __UTIL_H_
+#endif  // __UTIL_H_

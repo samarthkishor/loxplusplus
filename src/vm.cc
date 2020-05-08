@@ -1,8 +1,9 @@
 #include "vm.hh"
-#include "debug.h"
-#include "util.hh"
 
 #include <functional>
+
+#include "debug.h"
+#include "util.hh"
 
 VM vm;
 
@@ -41,19 +42,19 @@ static InterpretResult run() {
                 break;
             }
             case OP_ADD: {
-                binaryOp([](Value a, Value b) -> Value {return a + b;});
+                binaryOp([](Value a, Value b) -> Value { return a + b; });
                 break;
             }
             case OP_SUBTRACT: {
-                binaryOp([](Value a, Value b) -> Value {return a - b;});
+                binaryOp([](Value a, Value b) -> Value { return a - b; });
                 break;
             }
             case OP_MULTIPLY: {
-                binaryOp([](Value a, Value b) -> Value {return a * b;});
+                binaryOp([](Value a, Value b) -> Value { return a * b; });
                 break;
             }
             case OP_DIVIDE: {
-                binaryOp([](Value a, Value b) -> Value {return a / b;});
+                binaryOp([](Value a, Value b) -> Value { return a / b; });
                 break;
             }
             case OP_NEGATE: {
