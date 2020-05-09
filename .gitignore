@@ -4,6 +4,7 @@
 *.o
 *.gch
 loxpp
+loxpp-asan
 tmp/
 
 bin/

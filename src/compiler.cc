@@ -3,12 +3,7 @@
 #include <cstdio>
 #include <iostream>
 
-// I'm too lazy to write the scanner by hand in C++ so I just copied the book's C code
-extern "C" {
 #include "scanner.h"
-void initScanner(const char*);
-Token scanToken(void);
-}
 
 void compile(std::string source) {
     initScanner(source.c_str());
