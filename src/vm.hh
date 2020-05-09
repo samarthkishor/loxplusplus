@@ -13,6 +13,6 @@ struct VM {
 
 enum class InterpretResult { OK, COMPILE_ERROR, RUNTIME_ERROR };
 
-InterpretResult interpret(Chunk* chunk);
+InterpretResult interpret(std::string source);
 
 #endif  // __VM_H_

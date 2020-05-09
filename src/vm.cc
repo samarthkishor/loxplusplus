@@ -2,6 +2,7 @@
 
 #include <functional>
 
+#include "compiler.hh"
 #include "debug.h"
 #include "util.hh"
 
@@ -76,8 +77,7 @@ static InterpretResult run() {
 #undef READ_CONSTANT
 }
 
-InterpretResult interpret(Chunk* chunk) {
-    vm.chunk = chunk;
-    vm.ip = vm.chunk->code.data();
-    return run();
+InterpretResult interpret(std::string source) {
+    compile(source);
+    return InterpretResult::OK;
 }
