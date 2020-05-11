@@ -1,5 +1,7 @@
 #include "vm.hh"
 
+#include <cstdarg>
+#include <cstdio>
 #include <functional>
 
 #include "compiler.hh"
@@ -8,12 +10,40 @@
 
 VM vm;
 
-void binaryOp(std::function<Value(Value, Value)> op) {
+static void runtimeError(const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    vfprintf(stderr, format, args);
+    va_end(args);
+    std::cerr << std::endl;
+
+    size_t instruction = vm.ip - vm.chunk->code.data() - 1;
+    int line = vm.chunk->lines[instruction];
+    fprintf(stderr, "[line %d] in script\n", line);
+
+    vm.stack = std::stack<Value>();
+}
+
+static Value peek(int distance) {
+    // TODO maybe a stack isn't the most efficient way to do this
+    return stackToVec(vm.stack)[distance];
+}
+
+static bool isFalsey(Value value) {
+    return (value.type == VAL_NIL) || (value.type == VAL_BOOL && !value.as.boolean);
+}
+
+static InterpretResult binaryOp(std::function<Value(Value, Value)> op) {
+    if (peek(0).type != VAL_NUMBER || peek(1).type != VAL_NUMBER) {
+        runtimeError("Operands must be numbers.");
+        return InterpretResult::RUNTIME_ERROR;
+    }
     auto b = vm.stack.top();
     vm.stack.pop();
     auto a = vm.stack.top();
     vm.stack.pop();
     vm.stack.push(op(a, b));
+    return InterpretResult::OK;
 }
 
 static InterpretResult run() {
@@ -42,26 +72,91 @@ static InterpretResult run() {
                 vm.stack.push(constant);
                 break;
             }
+            case OP_NIL: {
+                vm.stack.push(NIL_VAL);
+                break;
+            }
+            case OP_TRUE: {
+                vm.stack.push(BOOL_VAL(true));
+                break;
+            }
+            case OP_FALSE: {
+                vm.stack.push(BOOL_VAL(false));
+                break;
+            }
+            case OP_EQUAL: {
+                auto a = vm.stack.top();
+                vm.stack.pop();
+                auto b = vm.stack.top();
+                vm.stack.pop();
+                vm.stack.push(BOOL_VAL(valuesEqual(a, b)));
+                break;
+            }
+            case OP_GREATER: {
+                auto res = binaryOp(
+                    [](Value a, Value b) -> Value { return BOOL_VAL(a.as.number > b.as.number); });
+                if (res == InterpretResult::RUNTIME_ERROR) {
+                    return InterpretResult::RUNTIME_ERROR;
+                }
+                break;
+            }
+            case OP_LESS: {
+                auto res = binaryOp(
+                    [](Value a, Value b) -> Value { return BOOL_VAL(a.as.number < b.as.number); });
+                if (res == InterpretResult::RUNTIME_ERROR) {
+                    return InterpretResult::RUNTIME_ERROR;
+                }
+                break;
+            }
             case OP_ADD: {
-                binaryOp([](Value a, Value b) -> Value { return a + b; });
+                auto res = binaryOp([](Value a, Value b) -> Value {
+                    return NUMBER_VAL(a.as.number + b.as.number);
+                });
+                if (res == InterpretResult::RUNTIME_ERROR) {
+                    return InterpretResult::RUNTIME_ERROR;
+                }
                 break;
             }
             case OP_SUBTRACT: {
-                binaryOp([](Value a, Value b) -> Value { return a - b; });
+                auto res = binaryOp([](Value a, Value b) -> Value {
+                    return NUMBER_VAL(a.as.number - b.as.number);
+                });
+                if (res == InterpretResult::RUNTIME_ERROR) {
+                    return InterpretResult::RUNTIME_ERROR;
+                }
                 break;
             }
             case OP_MULTIPLY: {
-                binaryOp([](Value a, Value b) -> Value { return a * b; });
+                auto res = binaryOp([](Value a, Value b) -> Value {
+                    return NUMBER_VAL(a.as.number * b.as.number);
+                });
+                if (res == InterpretResult::RUNTIME_ERROR) {
+                    return InterpretResult::RUNTIME_ERROR;
+                }
                 break;
             }
             case OP_DIVIDE: {
-                binaryOp([](Value a, Value b) -> Value { return a / b; });
+                auto res = binaryOp([](Value a, Value b) -> Value {
+                    return NUMBER_VAL(a.as.number / b.as.number);
+                });
+                if (res == InterpretResult::RUNTIME_ERROR) {
+                    return InterpretResult::RUNTIME_ERROR;
+                }
+                break;
+            }
+            case OP_NOT: {
+                auto top = vm.stack.top();
+                vm.stack.pop();
+                vm.stack.push(BOOL_VAL(isFalsey(top)));
                 break;
             }
             case OP_NEGATE: {
+                if (peek(0).type != VAL_NUMBER) {
+                    return InterpretResult::RUNTIME_ERROR;
+                }
                 auto top = vm.stack.top();
                 vm.stack.pop();
-                vm.stack.push(-top);
+                vm.stack.push(NUMBER_VAL(-top.as.number));
                 break;
             }
             case OP_RETURN: {
@@ -78,6 +173,16 @@ static InterpretResult run() {
 }
 
 InterpretResult interpret(std::string source) {
-    compile(source);
-    return InterpretResult::OK;
+    Chunk chunk;
+
+    if (!compile(source, &chunk)) {
+        return InterpretResult::COMPILE_ERROR;
+    }
+
+    vm.chunk = &chunk;
+    vm.ip = vm.chunk->code.data();
+
+    auto result = run();
+
+    return result;
 }

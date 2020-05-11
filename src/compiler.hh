@@ -3,6 +3,8 @@
 
 #include <string>
 
-void compile(std::string source);
+#include "chunk.h"
+
+bool compile(std::string source, Chunk* chunk);
 
 #endif  // __COMPILER_H_
