@@ -9,10 +9,10 @@ all: loxpp
 # Debug with AddressSanitizer to detect memory leaks
 debug: loxpp loxpp-asan
 
-loxpp: loxpp.o vm.o compiler.o scanner.o chunk.o debug.o value.o
-	$(CXX) $(LDFLAGS) -o loxpp loxpp.o vm.o compiler.o scanner.o chunk.o debug.o value.o
+loxpp: loxpp.o vm.o compiler.o scanner.o chunk.o debug.o value.o memory.o object.o
+	$(CXX) $(LDFLAGS_ASAN) -o $@ $^
 
-loxpp-asan: loxpp-asan.o vm-asan.o compiler-asan.o scanner-asan.o chunk-asan.o debug-asan.o value-asan.o
+loxpp-asan: loxpp-asan.o vm-asan.o compiler-asan.o scanner-asan.o chunk-asan.o debug-asan.o value-asan.o memory-asan.o object-asan.o
 	$(CXX) $(LDFLAGS_ASAN) -o $@ $^
 
 %-asan.o: %.cc
@@ -21,11 +21,17 @@ loxpp-asan: loxpp-asan.o vm-asan.o compiler-asan.o scanner-asan.o chunk-asan.o d
 loxpp.o: loxpp.cc chunk.h debug.h vm.hh
 loxpp-asan.o: loxpp.cc chunk.h debug.h vm.hh
 
-vm.o: vm.cc vm.hh chunk.h compiler.hh debug.h util.hh
-vm-asan.o: vm.cc vm.hh chunk.h compiler.hh debug.h util.hh
+vm.o: vm.cc vm.hh chunk.h compiler.hh debug.h util.hh memory.h object.h
+vm-asan.o: vm.cc vm.hh chunk.h compiler.hh debug.h util.hh memory.h object.h
 
-compiler.o: compiler.cc compiler.hh scanner.h chunk.h
-compiler-asan.o: compiler.cc compiler.hh scanner.h chunk.h
+memory.o: memory.cc memory.h object.h vm.hh
+memory-asan.o: memory.cc memory.h object.h vm.hh
+
+object.o: object.cc object.h value.h memory.h vm.hh
+object-asan.o: object.cc object.h value.h memory.h vm.hh
+
+compiler.o: compiler.cc compiler.hh scanner.h chunk.h object.h
+compiler-asan.o: compiler.cc compiler.hh scanner.h chunk.h object.h
 
 scanner.o: scanner.cc scanner.h
 scanner-asan.o: scanner.cc scanner.h
@@ -36,8 +42,8 @@ chunk-asan.o: chunk.cc chunk.h value.h
 debug.o: debug.cc debug.h value.h
 debug-asan.o: debug.cc debug.h value.h
 
-value.o: value.cc value.h
-value-asan.o: value.cc value.h
+value.o: value.cc value.h object.h
+value-asan.o: value.cc value.h object.h
 
 clean:
 	rm -f *.o

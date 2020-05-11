@@ -6,9 +6,19 @@
 
 #include "compiler.hh"
 #include "debug.h"
+#include "memory.h"
+#include "object.h"
 #include "util.hh"
 
 VM vm;
+
+void initVM() {
+    vm.objects = NULL;
+}
+
+void freeVM() {
+    freeObjects();
+}
 
 static void runtimeError(const char* format, ...) {
     va_list args;
@@ -31,6 +41,24 @@ static Value peek(int distance) {
 
 static bool isFalsey(Value value) {
     return (value.type == VAL_NIL) || (value.type == VAL_BOOL && !value.as.boolean);
+}
+
+static void concatenate() {
+    auto bval = vm.stack.top();
+    vm.stack.pop();
+    auto aval = vm.stack.top();
+    vm.stack.pop();
+    ObjString* b = AS_STRING(bval);
+    ObjString* a = AS_STRING(aval);
+
+    int length = a->length + b->length;
+    char* chars = ALLOCATE(char, length + 1);
+    memcpy(chars, a->chars, a->length);
+    memcpy(chars + a->length, b->chars, b->length);
+    chars[length] = '\0';
+
+    ObjString* result = takeString(chars, length);
+    vm.stack.push(OBJ_VAL(result));
 }
 
 static InterpretResult binaryOp(std::function<Value(Value, Value)> op) {
@@ -109,10 +137,16 @@ static InterpretResult run() {
                 break;
             }
             case OP_ADD: {
-                auto res = binaryOp([](Value a, Value b) -> Value {
-                    return NUMBER_VAL(a.as.number + b.as.number);
-                });
-                if (res == InterpretResult::RUNTIME_ERROR) {
+                if (IS_STRING(peek(0)) && IS_STRING(peek(1))) {
+                    concatenate();
+                } else if (IS_NUMBER(peek(0)) && IS_NUMBER(peek(1))) {
+                    auto b = vm.stack.top();
+                    vm.stack.pop();
+                    auto a = vm.stack.top();
+                    vm.stack.pop();
+                    vm.stack.push(NUMBER_VAL(a.as.number + b.as.number));
+                } else {
+                    runtimeError("Operands must be two numbers or two strings.");
                     return InterpretResult::RUNTIME_ERROR;
                 }
                 break;

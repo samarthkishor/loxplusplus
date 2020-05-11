@@ -62,6 +62,8 @@ static void runFile(std::string path) {
 }
 
 int main(int argc, char* argv[]) {
+    initVM();
+
     switch (argc) {
         case 1: {
             repl();
@@ -76,6 +78,8 @@ int main(int argc, char* argv[]) {
             exit(64);
         }
     }
+
+    freeVM();
 
     return 0;
 }
