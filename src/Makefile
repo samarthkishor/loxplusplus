@@ -1,6 +1,6 @@
 CXX=clang++
-CXXFLAGS=-g -std=c++2a -O2 -Wall -pedantic
-CXXFLAGS_ASAN=-g -std=c++2a -Wall -pedantic -fsanitize=address -D_GLIBCXX_DEBUG
+CXXFLAGS=-g -std=c++2a -O2 -Wall
+CXXFLAGS_ASAN=-g -std=c++2a -Wall -fsanitize=address -D_GLIBCXX_DEBUG
 LDFLAGS=-g
 LDFLAGS_ASAN=-g -fsanitize=address
 
