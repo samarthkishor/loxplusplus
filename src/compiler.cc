@@ -315,10 +315,10 @@ bool compile(std::string source, Chunk* chunk) {
     initScanner(source.c_str());
     compilingChunk = chunk;
 
-    advance();
-
     parser.hadError = false;
     parser.panicMode = false;
+
+    advance();
 
     expression();
     consume(TOKEN_EOF, "Expect end of expression.");

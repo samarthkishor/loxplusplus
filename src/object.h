@@ -10,7 +10,6 @@ enum ObjType { OBJ_STRING };
 #define IS_STRING(value) isObjType(value, OBJ_STRING)
 
 #define AS_STRING(value) (ObjString*)((value).as.obj)
-// TODO maybe convert this to an std::string
 #define AS_CSTRING(value) (((ObjString*)((value).as.obj))->chars)
 
 struct sObj {

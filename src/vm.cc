@@ -13,7 +13,7 @@
 VM vm;
 
 void initVM() {
-    vm.objects = NULL;
+    vm.objects = nullptr;
 }
 
 void freeVM() {
