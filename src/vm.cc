@@ -77,6 +77,7 @@ static InterpretResult binaryOp(std::function<Value(Value, Value)> op) {
 static InterpretResult run() {
 #define READ_BYTE() (*vm.ip++)
 #define READ_CONSTANT() (vm.chunk->constants[READ_BYTE()])
+#define READ_STRING() AS_STRING(READ_CONSTANT())
 
     while (true) {
 #ifdef DEBUG_TRACE_EXECUTION
@@ -110,6 +111,36 @@ static InterpretResult run() {
             }
             case OP_FALSE: {
                 vm.stack.push(BOOL_VAL(false));
+                break;
+            }
+            case OP_POP: {
+                vm.stack.pop();
+                break;
+            }
+            case OP_GET_GLOBAL: {
+                ObjString* name = READ_STRING();
+                auto value_iter = vm.globals.find(name);
+                if (value_iter == vm.globals.end()) {
+                    runtimeError("Undefined variable '%s'.", name->chars);
+                    return InterpretResult::RUNTIME_ERROR;
+                }
+                vm.stack.push(value_iter->second);
+                break;
+            }
+            case OP_DEFINE_GLOBAL: {
+                ObjString* name = READ_STRING();
+                vm.globals.insert({name, peek(0)});
+                vm.stack.pop();
+                break;
+            }
+            case OP_SET_GLOBAL: {
+                ObjString* name = READ_STRING();
+                auto value_iter = vm.globals.find(name);
+                if (value_iter == vm.globals.end()) {
+                    runtimeError("Undefined variable '%s'.", name->chars);
+                    return InterpretResult::RUNTIME_ERROR;
+                }
+                vm.globals[name] = peek(0);
                 break;
             }
             case OP_EQUAL: {
@@ -193,10 +224,13 @@ static InterpretResult run() {
                 vm.stack.push(NUMBER_VAL(-top.as.number));
                 break;
             }
-            case OP_RETURN: {
+            case OP_PRINT: {
                 printValue(vm.stack.top());
-                std::cout << std::endl;
                 vm.stack.pop();
+                std::cout << std::endl;
+                break;
+            }
+            case OP_RETURN: {
                 return InterpretResult::OK;
             }
         }
@@ -204,6 +238,7 @@ static InterpretResult run() {
 
 #undef READ_BYTE
 #undef READ_CONSTANT
+#undef READ_STRING
 }
 
 InterpretResult interpret(std::string source) {

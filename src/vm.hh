@@ -2,6 +2,7 @@
 #define __VM_H_
 
 #include <stack>
+#include <unordered_map>
 #include <unordered_set>
 
 #include "chunk.h"
@@ -42,6 +43,7 @@ struct VM {
     std::stack<Value> stack;
     Obj* objects;
     std::unordered_set<ObjString*, hash_string, string_eq> strings;  // for string interning
+    std::unordered_map<ObjString*, Value, hash_string, string_eq> globals;
 };
 
 enum class InterpretResult { OK, COMPILE_ERROR, RUNTIME_ERROR };
