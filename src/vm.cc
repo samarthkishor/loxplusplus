@@ -36,6 +36,18 @@ static void runtimeError(const char* format, ...) {
 
 static Value peek(int distance) {
     // TODO maybe a stack isn't the most efficient way to do this
+    if (distance == 0) {
+        return vm.stack.top();
+    }
+
+    if (distance == 1) {
+        Value top = vm.stack.top();
+        vm.stack.pop();
+        Value result = vm.stack.top();
+        vm.stack.push(top);
+        return result;
+    }
+
     return stackToVec(vm.stack)[distance];
 }
 
