@@ -124,6 +124,21 @@ static void emitBytes(uint8_t byte1, uint8_t byte2) {
 }
 
 /**
+ * Emits a loop instruction which unconditionally jumps backwards by a given offset.
+ */
+static void emitLoop(int loopStart) {
+    emitByte(OP_LOOP);
+
+    int offset = currentChunk()->code.size() - loopStart + 2;
+    if (offset > UINT16_MAX) {
+        error("Loop body too large.");
+    }
+
+    emitByte((offset >> 8) & 0xff);
+    emitByte(offset & 0xff);
+}
+
+/**
  * Returns the offset of the emitted instruction in the chunk.
  */
 static int emitJump(uint8_t instruction) {
@@ -324,6 +339,24 @@ static void printStatement() {
     emitByte(OP_PRINT);
 }
 
+static void whileStatement() {
+    int loopStart = currentChunk()->code.size();
+
+    consume(TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
+    expression();
+    consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+
+    int exitJump = emitJump(OP_JUMP_IF_FALSE);
+
+    emitByte(OP_POP);
+    statement();
+
+    emitLoop(loopStart);
+
+    patchJump(exitJump);
+    emitByte(OP_POP);
+}
+
 static void synchronize() {
     parser.panicMode = false;
 
@@ -367,6 +400,8 @@ static void statement() {
         printStatement();
     } else if (match(TOKEN_IF)) {
         ifStatement();
+    } else if (match(TOKEN_WHILE)) {
+        whileStatement();
     } else if (match(TOKEN_LEFT_BRACE)) {
         beginScope();
         block();
@@ -384,6 +419,22 @@ static void grouping(bool canAssign) {
 static void number(bool canAssign) {
     double value = std::stod(parser.previous.start);
     emitConstant(NUMBER_VAL(value));
+}
+
+static void or_(bool canAssign) {
+    (void)canAssign;
+
+    // when the left-hand side is falsey, jump over the next statement which is
+    // an unconditional jump over the code for the right operand.
+    int elseJump = emitJump(OP_JUMP_IF_FALSE);
+    // if truthy, then skip over the right operand
+    int endJump = emitJump(OP_JUMP);
+
+    patchJump(elseJump);
+    emitByte(OP_POP);
+
+    parsePrecedence(PREC_OR);
+    patchJump(endJump);
 }
 
 static void string(bool canAssign) {
@@ -555,6 +606,17 @@ static void defineVariable(uint8_t global) {
     emitBytes(OP_DEFINE_GLOBAL, global);
 }
 
+static void and_(bool canAssign) {
+    // left-hand side of the expression has already been compiled so its value
+    // will be at the top of the stack
+    int endJump = emitJump(OP_JUMP_IF_FALSE);
+
+    emitByte(OP_POP);
+    parsePrecedence(PREC_AND);
+
+    patchJump(endJump);
+}
+
 ParseRule rules[] = {
     {grouping, NULL, PREC_NONE},      // TOKEN_LEFT_PAREN
     {NULL, NULL, PREC_NONE},          // TOKEN_RIGHT_PAREN
@@ -578,7 +640,7 @@ ParseRule rules[] = {
     {variable, NULL, PREC_NONE},      // TOKEN_IDENTIFIER
     {string, NULL, PREC_NONE},        // TOKEN_STRING
     {number, NULL, PREC_NONE},        // TOKEN_NUMBER
-    {NULL, NULL, PREC_NONE},          // TOKEN_AND
+    {NULL, and_, PREC_AND},           // TOKEN_AND
     {NULL, NULL, PREC_NONE},          // TOKEN_CLASS
     {NULL, NULL, PREC_NONE},          // TOKEN_ELSE
     {literal, NULL, PREC_NONE},       // TOKEN_FALSE
@@ -586,7 +648,7 @@ ParseRule rules[] = {
     {NULL, NULL, PREC_NONE},          // TOKEN_FUN
     {NULL, NULL, PREC_NONE},          // TOKEN_IF
     {literal, NULL, PREC_NONE},       // TOKEN_NIL
-    {NULL, NULL, PREC_NONE},          // TOKEN_OR
+    {NULL, or_, PREC_OR},             // TOKEN_OR
     {NULL, NULL, PREC_NONE},          // TOKEN_PRINT
     {NULL, NULL, PREC_NONE},          // TOKEN_RETURN
     {NULL, NULL, PREC_NONE},          // TOKEN_SUPER
