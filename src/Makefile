@@ -4,10 +4,10 @@ CXXFLAGS_ASAN=-g -std=c++2a -Wall -fsanitize=address -D_GLIBCXX_DEBUG
 LDFLAGS=-g
 LDFLAGS_ASAN=-g -fsanitize=address
 
-all: loxpp
+all: loxpp loxpp-asan
 
 # Debug with AddressSanitizer to detect memory leaks
-debug: loxpp loxpp-asan
+debug: loxpp-asan
 
 loxpp: loxpp.o vm.o compiler.o scanner.o chunk.o debug.o value.o memory.o object.o
 	$(CXX) $(LDFLAGS_ASAN) -o $@ $^
