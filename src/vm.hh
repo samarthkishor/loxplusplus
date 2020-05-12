@@ -1,9 +1,9 @@
 #ifndef __VM_H_
 #define __VM_H_
 
-#include <stack>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 #include "chunk.h"
 #include "object.h"
@@ -40,7 +40,7 @@ struct string_eq {
 struct VM {
     Chunk* chunk;
     uint8_t* ip;  // instruction pointer
-    std::stack<Value> stack;
+    std::vector<Value> stack;
     Obj* objects;
     std::unordered_set<ObjString*, hash_string, string_eq> strings;  // for string interning
     std::unordered_map<ObjString*, Value, hash_string, string_eq> globals;

@@ -30,24 +30,11 @@ static void runtimeError(const char* format, ...) {
     int line = vm.chunk->lines[instruction];
     fprintf(stderr, "[line %d] in script\n", line);
 
-    vm.stack = std::stack<Value>();
+    vm.stack = std::vector<Value>();
 }
 
 static Value peek(int distance) {
-    // TODO maybe a stack isn't the most efficient way to do this
-    if (distance == 0) {
-        return vm.stack.top();
-    }
-
-    if (distance == 1) {
-        Value top = vm.stack.top();
-        vm.stack.pop();
-        Value result = vm.stack.top();
-        vm.stack.push(top);
-        return result;
-    }
-
-    return stackToVec(vm.stack)[distance];
+    return vm.stack[distance];
 }
 
 static bool isFalsey(Value value) {
@@ -55,10 +42,10 @@ static bool isFalsey(Value value) {
 }
 
 static void concatenate() {
-    auto bval = vm.stack.top();
-    vm.stack.pop();
-    auto aval = vm.stack.top();
-    vm.stack.pop();
+    auto bval = vm.stack.back();
+    vm.stack.pop_back();
+    auto aval = vm.stack.back();
+    vm.stack.pop_back();
     ObjString* b = AS_STRING(bval);
     ObjString* a = AS_STRING(aval);
 
@@ -69,7 +56,7 @@ static void concatenate() {
     chars[length] = '\0';
 
     ObjString* result = takeString(chars, length);
-    vm.stack.push(OBJ_VAL(result));
+    vm.stack.push_back(OBJ_VAL(result));
 }
 
 static InterpretResult binaryOp(std::function<Value(Value, Value)> op) {
@@ -77,11 +64,11 @@ static InterpretResult binaryOp(std::function<Value(Value, Value)> op) {
         runtimeError("Operands must be numbers.");
         return InterpretResult::RUNTIME_ERROR;
     }
-    auto b = vm.stack.top();
-    vm.stack.pop();
-    auto a = vm.stack.top();
-    vm.stack.pop();
-    vm.stack.push(op(a, b));
+    auto b = vm.stack.back();
+    vm.stack.pop_back();
+    auto a = vm.stack.back();
+    vm.stack.pop_back();
+    vm.stack.push_back(op(a, b));
     return InterpretResult::OK;
 }
 
@@ -93,13 +80,10 @@ static InterpretResult run() {
     while (true) {
 #ifdef DEBUG_TRACE_EXECUTION
         std::cout << "          ";
-        std::stack<Value> temp;
-        reverseStack(vm.stack, temp);
-        while (!temp.empty()) {
+        for (auto stack_iter = vm.stack.rbegin(); stack_iter != vm.stack.rend(); ++stack_iter) {
             std::cout << "[ ";
-            printValue(temp.top());
-            temp.pop();
-            std::cout << " ] ";
+            printValue(*stack_iter);
+            std::cout << " ]";
         }
         std::cout << std::endl;
         disassembleInstruction(vm.chunk, (int)(vm.ip - vm.chunk->code.data()));
@@ -109,23 +93,33 @@ static InterpretResult run() {
         switch (instruction = READ_BYTE()) {
             case OP_CONSTANT: {
                 Value constant = READ_CONSTANT();
-                vm.stack.push(constant);
+                vm.stack.push_back(constant);
                 break;
             }
             case OP_NIL: {
-                vm.stack.push(NIL_VAL);
+                vm.stack.push_back(NIL_VAL);
                 break;
             }
             case OP_TRUE: {
-                vm.stack.push(BOOL_VAL(true));
+                vm.stack.push_back(BOOL_VAL(true));
                 break;
             }
             case OP_FALSE: {
-                vm.stack.push(BOOL_VAL(false));
+                vm.stack.push_back(BOOL_VAL(false));
                 break;
             }
             case OP_POP: {
-                vm.stack.pop();
+                vm.stack.pop_back();
+                break;
+            }
+            case OP_GET_LOCAL: {
+                uint8_t slot = READ_BYTE();
+                vm.stack.push_back(vm.stack[slot]);
+                break;
+            }
+            case OP_SET_LOCAL: {
+                uint8_t slot = READ_BYTE();
+                vm.stack[slot] = peek(0);
                 break;
             }
             case OP_GET_GLOBAL: {
@@ -135,13 +129,13 @@ static InterpretResult run() {
                     runtimeError("Undefined variable '%s'.", name->chars);
                     return InterpretResult::RUNTIME_ERROR;
                 }
-                vm.stack.push(value_iter->second);
+                vm.stack.push_back(value_iter->second);
                 break;
             }
             case OP_DEFINE_GLOBAL: {
                 ObjString* name = READ_STRING();
                 vm.globals.insert({name, peek(0)});
-                vm.stack.pop();
+                vm.stack.pop_back();
                 break;
             }
             case OP_SET_GLOBAL: {
@@ -155,11 +149,11 @@ static InterpretResult run() {
                 break;
             }
             case OP_EQUAL: {
-                auto a = vm.stack.top();
-                vm.stack.pop();
-                auto b = vm.stack.top();
-                vm.stack.pop();
-                vm.stack.push(BOOL_VAL(valuesEqual(a, b)));
+                auto a = vm.stack.back();
+                vm.stack.pop_back();
+                auto b = vm.stack.back();
+                vm.stack.pop_back();
+                vm.stack.push_back(BOOL_VAL(valuesEqual(a, b)));
                 break;
             }
             case OP_GREATER: {
@@ -182,11 +176,11 @@ static InterpretResult run() {
                 if (IS_STRING(peek(0)) && IS_STRING(peek(1))) {
                     concatenate();
                 } else if (IS_NUMBER(peek(0)) && IS_NUMBER(peek(1))) {
-                    auto b = vm.stack.top();
-                    vm.stack.pop();
-                    auto a = vm.stack.top();
-                    vm.stack.pop();
-                    vm.stack.push(NUMBER_VAL(a.as.number + b.as.number));
+                    auto b = vm.stack.back();
+                    vm.stack.pop_back();
+                    auto a = vm.stack.back();
+                    vm.stack.pop_back();
+                    vm.stack.push_back(NUMBER_VAL(a.as.number + b.as.number));
                 } else {
                     runtimeError("Operands must be two numbers or two strings.");
                     return InterpretResult::RUNTIME_ERROR;
@@ -221,23 +215,23 @@ static InterpretResult run() {
                 break;
             }
             case OP_NOT: {
-                auto top = vm.stack.top();
-                vm.stack.pop();
-                vm.stack.push(BOOL_VAL(isFalsey(top)));
+                auto top = vm.stack.back();
+                vm.stack.pop_back();
+                vm.stack.push_back(BOOL_VAL(isFalsey(top)));
                 break;
             }
             case OP_NEGATE: {
                 if (peek(0).type != VAL_NUMBER) {
                     return InterpretResult::RUNTIME_ERROR;
                 }
-                auto top = vm.stack.top();
-                vm.stack.pop();
-                vm.stack.push(NUMBER_VAL(-top.as.number));
+                auto top = vm.stack.back();
+                vm.stack.pop_back();
+                vm.stack.push_back(NUMBER_VAL(-top.as.number));
                 break;
             }
             case OP_PRINT: {
-                printValue(vm.stack.top());
-                vm.stack.pop();
+                printValue(vm.stack.back());
+                vm.stack.pop_back();
                 std::cout << std::endl;
                 break;
             }
