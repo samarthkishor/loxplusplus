@@ -8,7 +8,6 @@
 #include "debug.h"
 #include "memory.h"
 #include "object.h"
-#include "util.hh"
 
 VM vm;
 

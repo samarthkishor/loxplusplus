@@ -21,8 +21,8 @@ loxpp-asan: loxpp-asan.o vm-asan.o compiler-asan.o scanner-asan.o chunk-asan.o d
 loxpp.o: loxpp.cc chunk.h debug.h vm.hh
 loxpp-asan.o: loxpp.cc chunk.h debug.h vm.hh
 
-vm.o: vm.cc vm.hh chunk.h compiler.hh debug.h util.hh memory.h object.h
-vm-asan.o: vm.cc vm.hh chunk.h compiler.hh debug.h util.hh memory.h object.h
+vm.o: vm.cc vm.hh chunk.h compiler.hh debug.h memory.h object.h
+vm-asan.o: vm.cc vm.hh chunk.h compiler.hh debug.h memory.h object.h
 
 memory.o: memory.cc memory.h object.h vm.hh
 memory-asan.o: memory.cc memory.h object.h vm.hh
