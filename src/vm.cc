@@ -34,7 +34,7 @@ static void runtimeError(const char* format, ...) {
 }
 
 static Value peek(int distance) {
-    return vm.stack[distance];
+    return vm.stack[vm.stack.size() - 1 - distance];
 }
 
 static bool isFalsey(Value value) {
@@ -81,7 +81,7 @@ static InterpretResult run() {
     while (true) {
 #ifdef DEBUG_TRACE_EXECUTION
         std::cout << "          ";
-        for (auto stack_iter = vm.stack.rbegin(); stack_iter != vm.stack.rend(); ++stack_iter) {
+        for (auto stack_iter = vm.stack.begin(); stack_iter != vm.stack.end(); ++stack_iter) {
             std::cout << "[ ";
             printValue(*stack_iter);
             std::cout << " ]";
